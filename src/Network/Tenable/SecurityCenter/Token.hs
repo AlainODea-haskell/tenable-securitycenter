@@ -39,7 +39,6 @@ data CreateTokenRequest = CreateTokenRequest
 instance Endpoint CreateTokenRequest where
   endpointRequestMethod _ = "POST"
   endpointRequestPath _ = "/rest/token"
-  endpointAuthentication _ = Nothing
 
 instance ToJSON CreateTokenRequest where
   toJSON tokenRequest =
@@ -62,14 +61,11 @@ instance FromJSON CreateTokenResponse where
 {-| 'DeleteTokenRequest' represents a request to log out.
 -}
 data DeleteTokenRequest = DeleteTokenRequest
-                          { deleteTokenRequestToken :: Token
-                          -- ^ Authentication token to destroy
-                          } deriving Show
+                          deriving Show
 
 instance Endpoint DeleteTokenRequest where
   endpointRequestMethod _ = "DELETE"
   endpointRequestPath _ = "/rest/token"
-  endpointAuthentication x = Just $ deleteTokenRequestToken x
 
 instance ToJSON DeleteTokenRequest where
   toJSON _ = Null

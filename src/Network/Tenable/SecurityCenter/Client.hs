@@ -1,5 +1,5 @@
 -- |
--- Module      : Network.Tenable.SecurityCenter.Token
+-- Module      : Network.Tenable.SecurityCenter.Client
 -- Copyright   : (c) 2016 Alain O'Dea
 -- License     : Apache Public License, v. 2.0.
 -- Maintainer  : Alain O'Dea <alain.odea@gmail.com>
@@ -36,11 +36,12 @@ runRequest :: (Endpoint a, ToJSON a, FromJSON b)
            -> T.Text
            -> CookieJar
            -> a
+           -> Maybe Token
            -> IO (Maybe b, CookieJar)
-runRequest manager hostname session apiRequest = do
+runRequest manager hostname session apiRequest token = do
   let request
         = setApiRequestBody apiRequest
-        $ defaultApiRequest hostname apiRequest manager session
+        $ defaultApiRequest hostname apiRequest token manager session
   apiResponse <- httpLBS request
   let apiResponseBody = getResponseBody apiResponse
   return $ ( fmap apiResponseResponse $ decode apiResponseBody
@@ -58,14 +59,15 @@ setApiRequestBody apiRequest req =
 defaultApiRequest :: (Endpoint a, ToJSON a)
                => T.Text
                -> a
+               -> Maybe Token
                -> Manager
                -> CookieJar
                -> Request
-defaultApiRequest hostname apiRequest manager session =
+defaultApiRequest hostname apiRequest token manager session =
   setRequestMethod (TE.encodeUtf8 $ endpointRequestMethod apiRequest)
   $ setRequestPath (TE.encodeUtf8 $ endpointRequestPath apiRequest)
   $ setRequestQueryString (fmap encodeQuery $ endpointRequestQueryString apiRequest)
-  $ setRequestAuthentication apiRequest
+  $ setRequestAuthentication token
   $ setRequestManager manager
   $ setRequestHost (TE.encodeUtf8 $ hostname)
   $ setRequestSecure True
@@ -78,11 +80,10 @@ encodeQuery :: (T.Text, Maybe T.Text)
             -> (S8.ByteString, Maybe S8.ByteString)
 encodeQuery (k, v) = (TE.encodeUtf8 k, fmap TE.encodeUtf8 v)
 
-setRequestAuthentication :: Endpoint a
-                         => a
+setRequestAuthentication :: Maybe Token
                          -> Request
                          -> Request
-setRequestAuthentication apiRequest req =
+setRequestAuthentication token req =
   maybe req
   (flip (setRequestHeader "X-SecurityCenter") req)
-  $ fmap ((:[]) . S8.pack . show . unToken) $ endpointAuthentication apiRequest
+  $ fmap ((:[]) . S8.pack . show . unToken) token

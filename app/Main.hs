@@ -38,12 +38,22 @@ main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   (configFilename, assetIdArg) <- parseArgs
+  (hostname, u, p) <- readConfig configFilename
+  run_example example_updateAsset hostname u p assetIdArg
+
+type TSCHost = T.Text
+type TSCUser = T.Text
+type TSCPass = T.Text
+
+readConfig :: FilePath
+           -> IO (TSCHost, TSCUser, TSCPass)
+readConfig configFilename = do
   configFile <- L8.readFile configFilename
   let config = either error id $ eitherDecode configFile
   let hostname = securityCenterHost $ config
   let u = securityCenterUsername config
   let p = securityCenterPassword config
-  run_example example_updateAsset hostname u p assetIdArg
+  return (hostname, u, p)
 
 run_example :: (ApiClient -> T.Text -> IO ())
             -> T.Text
@@ -57,7 +67,7 @@ run_example example hostname u p assetIdArg = do
   let apiClient = ApiClient manager hostname session t
   example apiClient assetIdArg
   _ <- endSession apiClient
-  return () 
+  return ()
 
 parseArgs :: IO (FilePath, T.Text)
 parseArgs = do
@@ -74,7 +84,8 @@ runApiRequest apiClient req = do
   let manager = apiClientManager apiClient
   let hostname = apiClientHostname apiClient
   let session = apiClientSession apiClient
-  res <- runRequest manager hostname session req
+  res <- runRequest manager hostname session req $
+    Just $ apiClientToken apiClient
   logSuccessApi reqId req
   return res
 
@@ -156,7 +167,7 @@ getToken :: Manager
 getToken manager hostname u p = do
   let unauthSession = createCookieJar []
   let req = CreateTokenRequest u p
-  (res, authSession) <- runRequest manager hostname unauthSession req
+  (res, authSession) <- runRequest manager hostname unauthSession req Nothing
   let Just t = fmap createTokenResponseToken res
   return (t, authSession)
 
@@ -164,8 +175,6 @@ endSession :: ApiClient
            -> IO (Maybe (ApiResponse Object), CookieJar)
 endSession apiClient = do
   let req = DeleteTokenRequest
-            { deleteTokenRequestToken = apiClientToken apiClient
-            }
   runApiRequest apiClient req
 
 updateDefinedIPs :: ApiClient
@@ -175,7 +184,6 @@ updateDefinedIPs :: ApiClient
 updateDefinedIPs apiClient assetToUpdate definedIPs = do
   let req = UpdateDefinedIPsRequest
             { updateDefinedIPsAssetId = assetToUpdate
-            , updateDefinedIPsToken = apiClientToken apiClient
             , updateDefinedIPsDefinedIPs = definedIPs
             }
   (res, _) <- runApiRequest apiClient req
@@ -187,8 +195,7 @@ createDefinedIPs :: ApiClient
                  -> IO (Maybe GetAssetByIdResponse)
 createDefinedIPs apiClient assetName definedIPs = do
   let req = CreateStaticAssetRequest
-            { createStaticAssetRequestToken = apiClientToken apiClient
-            , createStaticAssetRequestName = assetName
+            { createStaticAssetRequestName = assetName
             , createStaticAssetRequestDefinedIPs = definedIPs
             }
   (res, _) <- runApiRequest apiClient req
@@ -199,8 +206,6 @@ listAssets :: ApiClient
            -> IO ()
 listAssets apiClient manager = do
    let req = ListAssetsRequest
-             { authenticationToken = apiClientToken apiClient
-             }
    (res, _) <- runApiRequest apiClient req
    let usables = fmap usableAssets res
    print usables
@@ -212,8 +217,7 @@ getAssetById :: ApiClient
              -> IO (Maybe GetAssetByIdResponse)
 getAssetById apiClient assetToUpdate = do
   let req = GetAssetByIdRequest
-             { getAssetByIdToken = apiClientToken apiClient
-             , getAssetByIdId = assetToUpdate
+             { getAssetByIdId = assetToUpdate
              }
   (res, _) <- runApiRequest apiClient req
   return res
@@ -223,8 +227,6 @@ example_listScans :: ApiClient
           -> IO ()
 example_listScans apiClient _ = do
    let req = ListScansRequest
-             { scanToken = apiClientToken apiClient
-             }
    (res, _) <- runApiRequest apiClient req
    let usables = fmap scanUsable res
    print usables

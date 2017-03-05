@@ -18,7 +18,7 @@ module Network.Tenable.SecurityCenter.Scan
        )
 where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token)
+import Network.Tenable.SecurityCenter.Types (Endpoint(..))
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -27,14 +27,11 @@ import qualified Data.Text as T
 {-| 'ListScansRequest' represents a request for a list of scans.
 -}
 data ListScansRequest = ListScansRequest
-                         { scanToken :: Token
-                         -- ^ Request authentication token
-                         } deriving Show
+                        deriving Show
 
 instance Endpoint ListScansRequest where
   endpointRequestMethod _ = "GET"
   endpointRequestPath _ = "/rest/scan"
-  endpointAuthentication = pure . scanToken
 
 instance ToJSON ListScansRequest where
   toJSON _ = Null

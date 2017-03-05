@@ -1,5 +1,5 @@
 -- |
--- Module      : Network.Tenable.SecurityCenter.Token
+-- Module      : Network.Tenable.SecurityCenter.Asset
 -- Copyright   : (c) 2016 Alain O'Dea
 -- License     : Apache Public License, v. 2.0.
 -- Maintainer  : Alain O'Dea <alain.odea@gmail.com>
@@ -23,7 +23,7 @@ module Network.Tenable.SecurityCenter.Asset
        )
 where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token)
+import Network.Tenable.SecurityCenter.Types (Endpoint(..))
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -32,14 +32,11 @@ import qualified Data.Text as T
 {-| 'ListAssetsRequest' represents a request for a list of assets.
 -}
 data ListAssetsRequest = ListAssetsRequest
-                         { authenticationToken :: Token
-                         -- ^ Request authentication token
-                         } deriving Show
+                         deriving Show
 
 instance Endpoint ListAssetsRequest where
   endpointRequestMethod _ = "GET"
   endpointRequestPath _ = "/rest/asset"
-  endpointAuthentication = pure . authenticationToken
 
 instance ToJSON ListAssetsRequest where
   toJSON _ = Null
@@ -82,8 +79,7 @@ instance FromJSON ListAssetResponse where
     asset.
 -}
 data GetAssetByIdRequest = GetAssetByIdRequest
-                           { getAssetByIdToken :: Token
-                           , getAssetByIdId :: T.Text
+                           { getAssetByIdId :: T.Text
                            } deriving Show
 
 instance Endpoint GetAssetByIdRequest where
@@ -92,7 +88,6 @@ instance Endpoint GetAssetByIdRequest where
   endpointRequestQueryString _ =
     [ ("fields", pure "id,typeFields")
     ]
-  endpointAuthentication = pure . getAssetByIdToken
 
 instance ToJSON GetAssetByIdRequest where
   toJSON _ = Null
@@ -135,15 +130,12 @@ data UpdateDefinedIPsRequest = UpdateDefinedIPsRequest
                               -- ^ Unique ID of an existing static asset to update
                               , updateDefinedIPsDefinedIPs :: [T.Text]
                               -- ^ New list of IPs/CIDRs for the asset (SecurityCenter will convert into ranges)
-                              , updateDefinedIPsToken :: Token
-                              -- ^ Authentication token
                               } deriving Show
 
 instance Endpoint UpdateDefinedIPsRequest where
   endpointRequestMethod _ = "PATCH"
   endpointRequestPath x = T.concat
     [ "/rest/asset/" , updateDefinedIPsAssetId x]
-  endpointAuthentication = pure . updateDefinedIPsToken
 
 instance ToJSON UpdateDefinedIPsRequest where
   toJSON x = object ["definedIPs" .= (T.intercalate "," $
@@ -156,14 +148,11 @@ data CreateStaticAssetRequest = CreateStaticAssetRequest
                                 -- ^ Display name for the asset
                                 , createStaticAssetRequestDefinedIPs :: [T.Text]
                                 -- ^ Initial set of IPs/CIDRs for the asset (SecurityCenter will convert into ranges)
-                                , createStaticAssetRequestToken :: Token
-                                -- ^ Authentication token
                                 }
 
 instance Endpoint CreateStaticAssetRequest where
   endpointRequestMethod _ = "POST"
   endpointRequestPath _ = "/rest/asset"
-  endpointAuthentication = pure . createStaticAssetRequestToken
 
 instance ToJSON CreateStaticAssetRequest where
   toJSON x = object

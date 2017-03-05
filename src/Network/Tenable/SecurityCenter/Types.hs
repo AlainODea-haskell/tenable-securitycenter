@@ -47,8 +47,6 @@ class Endpoint a where
   -- | URL Query parameters (if needed, defaults to [])
   endpointRequestQueryString :: a -> [(T.Text, Maybe T.Text)]
   endpointRequestQueryString = const []
-  -- | Authentication token for the request
-  endpointAuthentication :: a -> Maybe Token
 
 {-| 'Token' represents a SecurityCenter authentication token
 -}

@@ -52,7 +52,6 @@ updateDefinedIPsRequestData = UpdateDefinedIPsRequest
                                 , "172.16.0.0/12"
                                 , "192.168.0.0/16"
                                 ]
-                              , updateDefinedIPsToken = Token 1234567890
                               }
 
 updateDefinedIPsRequestWire :: L8.ByteString
