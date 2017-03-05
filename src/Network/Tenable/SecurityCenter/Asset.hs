@@ -45,7 +45,9 @@ instance ToJSON ListAssetsRequest where
 -}
 data ListAssetsResponse = ListAssetsResponse
                           { usableAssets :: [ListAssetResponse]
+                          -- ^ Assets visible to the authenticated user
                           , manageableAssets :: [ListAssetResponse]
+                          -- ^ Assets editable by the authenticated user
                           } deriving Show
 
 instance FromJSON ListAssetsResponse where
@@ -80,6 +82,7 @@ instance FromJSON ListAssetResponse where
 -}
 data GetAssetByIdRequest = GetAssetByIdRequest
                            { getAssetByIdId :: T.Text
+                           -- ^ Unique ID of asset to retrieve
                            } deriving Show
 
 instance Endpoint GetAssetByIdRequest where

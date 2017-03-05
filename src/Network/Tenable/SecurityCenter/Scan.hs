@@ -40,9 +40,9 @@ instance ToJSON ListScansRequest where
 -}
 data ListScansResponse = ListScansResponse
                           { scanUsable :: [ListScanResponse]
-                          -- ^ Usable scans
+                          -- ^ Scans visible to the authenticated user
                           , scanManageable :: [ListScanResponse]
-                          -- ^ Manageable scans
+                          -- ^ Scans editable by the authenticated user
                           } deriving Show
 
 instance FromJSON ListScansResponse where
@@ -55,7 +55,7 @@ instance FromJSON ListScansResponse where
 -}
 data ListScanResponse = ListScanResponse
                           { scanId :: T.Text
-                          -- ^ Scan ID
+                          -- ^ Unique ID of scan in SecurityCenter
                           , scanName :: T.Text
                           -- ^ Short name for scan in lists
                           , scanDescription :: T.Text

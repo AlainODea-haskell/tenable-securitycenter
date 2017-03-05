@@ -27,7 +27,7 @@ import qualified Data.Text as T
 -}
 data ApiResponse a = ApiResponse
                      { apiResponseResponse :: a
-                     -- ^ Wrapped response
+                     -- ^ Endpoint-specific response
                      } deriving (Eq, Show)
 
 instance (FromJSON a) => FromJSON (ApiResponse a) where
