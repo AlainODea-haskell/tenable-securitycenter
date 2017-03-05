@@ -33,7 +33,7 @@ main :: IO ()
 main = do
   manager <- newManager tlsManagerSettings
   hSetBuffering stdout NoBuffering
-  [configFilename, assetIdArg] <- getArgs
+  [configFilename, assetIdArg] <- parseArgs
   configFile <- L8.readFile configFilename
   let config = either error id $ eitherDecode configFile
   let hostname = securityCenterHost $ config
@@ -44,6 +44,11 @@ main = do
   example_updateAsset apiClient assetIdArg
   _ <- endSession apiClient
   return ()
+
+parseArgs :: IO (FilePath, T.Text)
+parseArgs = do
+  [configFilename, assetIdArg] <- getArgs
+  return (configFilename, T.pack assetIdArg)
 
 runApiRequest :: (Endpoint a, ToJSON a, FromJSON b)
               => ApiClient
@@ -63,20 +68,18 @@ data ApiClient = ApiClient
                  }
 
 example_updateAsset :: ApiClient
-                    -> String
+                    -> T.Text
                     -> IO ()
-example_updateAsset apiClient assetIdArg = do
-  let assetToUpdate = T.pack assetIdArg
+example_updateAsset apiClient assetToUpdate = do
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
   _ <- updateDefinedIPs apiClient assetToUpdate definedIPs
   return ()
 
 example_createAsset :: ApiClient
-                    -> String
+                    -> T.Text
                     -> IO ()
-example_createAsset apiClient assetIdArg = do
-  let desiredAssetName = T.pack assetIdArg
+example_createAsset apiClient desiredAssetName = do
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
   res <- createDefinedIPs apiClient desiredAssetName definedIPs
