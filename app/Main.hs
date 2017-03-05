@@ -17,6 +17,7 @@ import Network.Tenable.SecurityCenter.Client
 import Network.Tenable.SecurityCenter.Token
 import Network.Tenable.SecurityCenter.Types
 import Network.Tenable.SecurityCenter.Asset
+import Network.Tenable.SecurityCenter.Scan
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -35,7 +36,6 @@ import           System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
 main :: IO ()
 main = do
-  manager <- newManager tlsManagerSettings
   hSetBuffering stdout NoBuffering
   (configFilename, assetIdArg) <- parseArgs
   configFile <- L8.readFile configFilename
@@ -43,11 +43,21 @@ main = do
   let hostname = securityCenterHost $ config
   let u = securityCenterUsername config
   let p = securityCenterPassword config
+  run_example example_updateAsset hostname u p assetIdArg
+
+run_example :: (ApiClient -> T.Text -> IO ())
+            -> T.Text
+            -> T.Text
+            -> T.Text
+            -> T.Text
+            -> IO ()
+run_example example hostname u p assetIdArg = do
+  manager <- newManager tlsManagerSettings
   (t, session) <- getToken manager hostname u p
   let apiClient = ApiClient manager hostname session t
-  example_updateAsset apiClient assetIdArg
+  example apiClient assetIdArg
   _ <- endSession apiClient
-  return ()
+  return () 
 
 parseArgs :: IO (FilePath, T.Text)
 parseArgs = do
@@ -207,3 +217,16 @@ getAssetById apiClient assetToUpdate = do
              }
   (res, _) <- runApiRequest apiClient req
   return res
+
+example_listScans :: ApiClient
+          -> T.Text
+          -> IO ()
+example_listScans apiClient _ = do
+   let req = ListScansRequest
+             { scanToken = apiClientToken apiClient
+             }
+   (res, _) <- runApiRequest apiClient req
+   let usables = fmap scanUsable res
+   print usables
+   let manageables = fmap scanManageable res
+   print manageables
