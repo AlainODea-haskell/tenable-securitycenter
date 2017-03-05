@@ -18,6 +18,7 @@ import Network.Tenable.SecurityCenter.Types (Endpoint(..))
 
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.ByteString.Char8 as S8
 import qualified Data.Text as T
 
 data CreateTokenRequest = CreateTokenRequest
@@ -45,3 +46,15 @@ instance FromJSON CreateTokenResponse where
                          v .: "token" <*>
                          v .: "unassociatedCert"
   parseJSON invalid = typeMismatch "CreateTokenResponse" invalid
+
+data DeleteTokenRequest = DeleteTokenRequest
+                          { deleteTokenRequestToken :: S8.ByteString
+                          } deriving Show
+
+instance Endpoint DeleteTokenRequest where
+  endpointRequestMethod _ = "DELETE"
+  endpointRequestPath _ = "/rest/token"
+  endpointAuthentication x = Just $ deleteTokenRequestToken x
+
+instance ToJSON DeleteTokenRequest where
+  toJSON _ = Null
