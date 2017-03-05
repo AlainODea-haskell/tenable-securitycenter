@@ -24,6 +24,10 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Either (either)
 import qualified Data.Text.IO as T
 import qualified Data.Text as T
+import           Data.Time.ISO8601 (formatISO8601Millis)
+import qualified Data.Time.Clock as Clock
+import qualified Data.UUID as U
+import qualified Data.UUID.V4 as U
 import           Network.HTTP.Client.TLS (tlsManagerSettings)
 import           Network.HTTP.Conduit
 import           System.Environment (getArgs)
@@ -55,10 +59,45 @@ runApiRequest :: (Endpoint a, ToJSON a, FromJSON b)
               -> a
               -> IO (Maybe b, CookieJar)
 runApiRequest apiClient req = do
+  reqId <- U.nextRandom
+  logSendApi reqId req
   let manager = apiClientManager apiClient
   let hostname = apiClientHostname apiClient
   let session = apiClientSession apiClient
-  runRequest manager hostname session req
+  res <- runRequest manager hostname session req
+  logSuccessApi reqId req
+  return res
+
+logSendApi :: Endpoint a
+           => U.UUID
+           -> a
+           -> IO ()
+logSendApi = logApi "Sending..."
+
+logSuccessApi :: Endpoint a
+              => U.UUID
+              -> a
+              -> IO ()
+logSuccessApi = logApi "Success"
+
+logApi :: Endpoint a
+           => T.Text
+           -> U.UUID
+           -> a
+           -> IO ()
+logApi msg reqId req = do
+  currentTime <- Clock.getCurrentTime
+  T.putStrLn $ T.concat
+    [ T.pack $ formatISO8601Millis currentTime
+    , ":"
+    , U.toText reqId
+    , ":"
+    , msg
+    , ":"
+    , endpointRequestMethod req
+    , ":"
+    , endpointRequestPath req
+    ]
 
 data ApiClient = ApiClient
                  { apiClientManager :: Manager

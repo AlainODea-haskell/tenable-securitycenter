@@ -41,8 +41,11 @@ executable tenable-securitycenter-exe
                      , connection >= 0.2.5
                      , http-client-tls
                      , http-conduit
+                     , iso8601-time
                      , tenable-securitycenter
                      , text
+                     , time
+                     , uuid
   default-language:    Haskell2010
 
 test-suite tenable-securitycenter-test
