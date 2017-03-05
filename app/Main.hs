@@ -41,27 +41,17 @@ main = do
   apiClient <- createApiClient configFilename
   run_example (example_updateAsset assetIdArg) apiClient
 
-type TSCHost = T.Text
-type TSCUser = T.Text
-type TSCPass = T.Text
-
 createApiClient :: FilePath
                 -> IO ApiClient
 createApiClient configFilename = do
-  (hostname, u, p) <- readConfig configFilename
-  manager <- newManager tlsManagerSettings
-  (t, session) <- getToken manager hostname u p
-  return $ ApiClient manager hostname session t
-
-readConfig :: FilePath
-           -> IO (TSCHost, TSCUser, TSCPass)
-readConfig configFilename = do
   configFile <- L8.readFile configFilename
   let config = either error id $ eitherDecode configFile
   let hostname = securityCenterHost $ config
   let u = securityCenterUsername config
   let p = securityCenterPassword config
-  return (hostname, u, p)
+  manager <- newManager tlsManagerSettings
+  (t, session) <- getToken manager hostname u p
+  return $ ApiClient manager hostname session t
 
 run_example :: (ApiClient -> IO ())
             -> ApiClient
