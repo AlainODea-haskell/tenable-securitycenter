@@ -14,15 +14,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.Tenable.SecurityCenter.Asset where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..))
+import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token)
 
-import Data.Aeson
-import Data.Aeson.Types
-import qualified Data.Text as T
+import           Data.Aeson
+import           Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 
 data ListAssetsRequest = ListAssetsRequest
-                         { authenticationToken :: S8.ByteString
+                         { authenticationToken :: Token
                          } deriving Show
 
 instance Endpoint ListAssetsRequest where
@@ -60,13 +61,13 @@ instance FromJSON ListAssetResponse where
   parseJSON invalid = typeMismatch "ListAssetResponse" invalid
 
 data GetAssetByIdRequest = GetAssetByIdRequest
-                           { getAssetByIdToken :: S8.ByteString
-                           , getAssetByIdId :: S8.ByteString
+                           { getAssetByIdToken :: Token
+                           , getAssetByIdId :: T.Text
                            } deriving Show
 
 instance Endpoint GetAssetByIdRequest where
   endpointRequestMethod _ = "GET"
-  endpointRequestPath x = S8.concat ["/rest/asset/", getAssetByIdId x]
+  endpointRequestPath x = T.concat ["/rest/asset/", getAssetByIdId x]
   endpointRequestQueryString _ =
     [ ("fields", pure "id,typeFields")
     ]
@@ -97,14 +98,15 @@ instance FromJSON StaticTypeFields where
   parseJSON invalid = typeMismatch "StaticTypeFields" invalid
 
 data UpdateDefinedIPsRequest = UpdateDefinedIPsRequest
-                              { updateDefinedIPsAssetId :: S8.ByteString
+                              { updateDefinedIPsAssetId :: T.Text
                               , updateDefinedIPsDefinedIPs :: [T.Text]
-                              , updateDefinedIPsToken :: S8.ByteString
+                              , updateDefinedIPsToken :: Token
                               } deriving Show
 
 instance Endpoint UpdateDefinedIPsRequest where
   endpointRequestMethod _ = "PATCH"
-  endpointRequestPath x = S8.concat ["/rest/asset/", updateDefinedIPsAssetId x]
+  endpointRequestPath x = T.concat
+    [ "/rest/asset/" , updateDefinedIPsAssetId x]
   endpointAuthentication = pure . updateDefinedIPsToken
 
 instance ToJSON UpdateDefinedIPsRequest where
@@ -114,7 +116,7 @@ instance ToJSON UpdateDefinedIPsRequest where
 data CreateStaticAssetRequest = CreateStaticAssetRequest
                                 { createStaticAssetRequestName :: T.Text
                                 , createStaticAssetRequestDefinedIPs :: [T.Text]
-                                , createStaticAssetRequestToken :: S8.ByteString
+                                , createStaticAssetRequestToken :: Token
                                 }
 
 instance Endpoint CreateStaticAssetRequest where

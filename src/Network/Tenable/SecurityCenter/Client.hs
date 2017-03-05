@@ -18,19 +18,23 @@ import Network.Tenable.SecurityCenter.Types
 import           Data.Aeson
 import           Data.Bool (bool)
 import qualified Data.ByteString.Char8 as S8
-import           Network.Connection (TLSSettings(..))
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import           Network.HTTP.Client
-import           Network.HTTP.Client.TLS (mkManagerSettings)
-import           Network.HTTP.Conduit
+                 ( cookieJar
+                 , responseCookieJar
+                 , Manager
+                 , CookieJar
+                 )
 import           Network.HTTP.Simple
 
 runRequest :: (Endpoint a, ToJSON a, FromJSON b)
-           => S8.ByteString
-           -> a
+           => Manager
+           -> T.Text
            -> CookieJar
+           -> a
            -> IO ((Maybe (ApiResponse b)), CookieJar)
-runRequest hostname apiRequest session = do
-  manager <- newManager noVerifyTlsManagerSettings
+runRequest manager hostname session apiRequest = do
   let request
         = setApiRequestBody apiRequest
         $ defaultApiRequest hostname apiRequest manager session
@@ -47,23 +51,27 @@ setApiRequestBody apiRequest req =
   $ endpointRequestMethod apiRequest `elem` ["POST","PATCH"]
 
 defaultApiRequest :: (Endpoint a, ToJSON a)
-               => S8.ByteString
+               => T.Text
                -> a
                -> Manager
                -> CookieJar
                -> Request
 defaultApiRequest hostname apiRequest manager session =
-  setRequestMethod (endpointRequestMethod apiRequest)
-  $ setRequestPath (endpointRequestPath apiRequest)
-  $ setRequestQueryString (endpointRequestQueryString apiRequest)
+  setRequestMethod (TE.encodeUtf8 $ endpointRequestMethod apiRequest)
+  $ setRequestPath (TE.encodeUtf8 $ endpointRequestPath apiRequest)
+  $ setRequestQueryString (fmap encodeQuery $ endpointRequestQueryString apiRequest)
   $ setRequestAuthentication apiRequest
   $ setRequestManager manager
-  $ setRequestHost hostname
+  $ setRequestHost (TE.encodeUtf8 $ hostname)
   $ setRequestSecure True
   $ setRequestPort 443
   $ defaultRequest {
     cookieJar = Just session
   }
+
+encodeQuery :: (T.Text, Maybe T.Text)
+            -> (S8.ByteString, Maybe S8.ByteString)
+encodeQuery (k, v) = (TE.encodeUtf8 k, fmap TE.encodeUtf8 v)
 
 setRequestAuthentication :: Endpoint a
                          => a
@@ -72,14 +80,4 @@ setRequestAuthentication :: Endpoint a
 setRequestAuthentication apiRequest req =
   maybe req
   (flip (setRequestHeader "X-SecurityCenter") req)
-  $ fmap (:[]) $ endpointAuthentication apiRequest
-
-noVerifyTlsManagerSettings :: ManagerSettings
-noVerifyTlsManagerSettings = mkManagerSettings noVerifyTlsSettings Nothing
-
-noVerifyTlsSettings :: TLSSettings
-noVerifyTlsSettings = TLSSettingsSimple
-  { settingDisableCertificateValidation = True
-  , settingDisableSession = True
-  , settingUseServerName = False
-  }
+  $ fmap ((:[]) . S8.pack . show . unToken) $ endpointAuthentication apiRequest

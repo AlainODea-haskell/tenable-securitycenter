@@ -14,8 +14,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.Tenable.SecurityCenter.Token where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..))
+import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token(..))
 
+import Control.Applicative (liftA)
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
@@ -37,18 +38,16 @@ instance ToJSON CreateTokenRequest where
            , "password" .= password tokenRequest]
 
 data CreateTokenResponse = CreateTokenResponse
-                           { token :: Int
-                           , unassociatedCert :: T.Text
+                           { token :: Token
                            } deriving (Eq, Show)
 
 instance FromJSON CreateTokenResponse where
-  parseJSON (Object v) = CreateTokenResponse <$>
-                         v .: "token" <*>
-                         v .: "unassociatedCert"
+  parseJSON (Object v) = liftA CreateTokenResponse
+                         (Token <$> (v .: "token"))
   parseJSON invalid = typeMismatch "CreateTokenResponse" invalid
 
 data DeleteTokenRequest = DeleteTokenRequest
-                          { deleteTokenRequestToken :: S8.ByteString
+                          { deleteTokenRequestToken :: Token
                           } deriving Show
 
 instance Endpoint DeleteTokenRequest where

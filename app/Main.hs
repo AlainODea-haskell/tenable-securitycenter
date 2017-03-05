@@ -20,54 +20,68 @@ import Network.Tenable.SecurityCenter.Asset
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Either (either)
 import qualified Data.Text.IO as T
 import qualified Data.Text as T
-import           GHC.Exts (IsString(fromString))
+import           Network.HTTP.Client.TLS (tlsManagerSettings)
 import           Network.HTTP.Conduit
 import           System.Environment (getArgs)
 import           System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
 main :: IO ()
-main = example_updateAsset
-
-example_updateAsset :: IO ()
-example_updateAsset = do
+main = do
+  manager <- newManager tlsManagerSettings
   hSetBuffering stdout NoBuffering
   [configFilename, assetIdArg] <- getArgs
   configFile <- L8.readFile configFilename
   let config = either error id $ eitherDecode configFile
-  let hostname = fromText . securityCenterHost $ config
+  let hostname = securityCenterHost $ config
   let u = securityCenterUsername config
   let p = securityCenterPassword config
-  rawUpdate <- T.getContents
-  let definedIPs = T.lines rawUpdate
-  let assetToUpdate = fromString assetIdArg
-  (t, session) <- getToken hostname u p
-  _ <- updateDefinedIPs session hostname t assetToUpdate definedIPs
-  _ <- endSession hostname (session, t)
+  (t, session) <- getToken manager hostname u p
+  let apiClient = ApiClient manager hostname session t
+  example_updateAsset apiClient assetIdArg
+  _ <- endSession apiClient
   return ()
 
-example_createAsset :: IO ()
-example_createAsset = do
-  hSetBuffering stdout NoBuffering
-  [configFilename, assetIdArg] <- getArgs
-  configFile <- L8.readFile configFilename
-  let config = either error id $ eitherDecode configFile
-  let hostname = fromText . securityCenterHost $ config
-  let u = securityCenterUsername config
-  let p = securityCenterPassword config
+runApiRequest :: (Endpoint a, ToJSON a, FromJSON b)
+              => ApiClient
+              -> a
+              -> IO ((Maybe (ApiResponse b)), CookieJar)
+runApiRequest apiClient req = do
+  let manager = apiClientManager apiClient
+  let hostname = apiClientHostname apiClient
+  let session = apiClientSession apiClient
+  runRequest manager hostname session req
+
+data ApiClient = ApiClient
+                 { apiClientManager :: Manager
+                 , apiClientHostname :: T.Text
+                 , apiClientSession :: CookieJar
+                 , apiClientToken :: Token
+                 }
+
+example_updateAsset :: ApiClient
+                    -> String
+                    -> IO ()
+example_updateAsset apiClient assetIdArg = do
+  let assetToUpdate = T.pack assetIdArg
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
-  let assetToUpdate = fromString assetIdArg
-  (t, session) <- getToken hostname u p
-  res <- createDefinedIPs session hostname t assetToUpdate definedIPs
+  _ <- updateDefinedIPs apiClient assetToUpdate definedIPs
+  return ()
+
+example_createAsset :: ApiClient
+                    -> String
+                    -> IO ()
+example_createAsset apiClient assetIdArg = do
+  let desiredAssetName = T.pack assetIdArg
+  rawUpdate <- T.getContents
+  let definedIPs = T.lines rawUpdate
+  res <- createDefinedIPs apiClient desiredAssetName definedIPs
   let Just createdAssetId = fmap assetByIdId res
   T.putStrLn createdAssetId
-  _ <- endSession hostname (session, t)
-  return ()
 
 data Config = Config
               { securityCenterHost :: T.Text
@@ -82,87 +96,72 @@ instance FromJSON Config where
                          v .: "password"
   parseJSON invalid = typeMismatch "Config" invalid
 
-fromText :: IsString a
-         => T.Text
-         -> a
-fromText = fromString . T.unpack
-
-fromS8 :: IsString a
-         => S8.ByteString
-         -> a
-fromS8 = fromString . S8.unpack
-
-getToken :: S8.ByteString
+getToken :: Manager
          -> T.Text
          -> T.Text
-         -> IO (Int, CookieJar)
-getToken hostname u p = do
+         -> T.Text
+         -> IO (Token, CookieJar)
+getToken manager hostname u p = do
   let unauthSession = createCookieJar []
   let req = CreateTokenRequest { username = u, password = p }
-  (res, authSession) <- runRequest hostname req unauthSession
+  (res, authSession) <- runRequest manager hostname unauthSession req
   let Just t = fmap (token.response) res
   return (t, authSession)
 
-updateDefinedIPs :: CookieJar
-                 -> S8.ByteString
-                 -> Int
-                 -> S8.ByteString
+endSession :: ApiClient
+           -> IO (Maybe (ApiResponse Object), CookieJar)
+endSession apiClient = do
+  let req = DeleteTokenRequest
+            { deleteTokenRequestToken = apiClientToken apiClient
+            }
+  runApiRequest apiClient req
+
+updateDefinedIPs :: ApiClient
+                 -> T.Text
                  -> [T.Text]
                  -> IO (Maybe GetAssetByIdResponse)
-updateDefinedIPs session hostname t assetToUpdate definedIPs = do
+updateDefinedIPs apiClient assetToUpdate definedIPs = do
   let req = UpdateDefinedIPsRequest
             { updateDefinedIPsAssetId = assetToUpdate
-            , updateDefinedIPsToken = (fromString . show) t
+            , updateDefinedIPsToken = apiClientToken apiClient
             , updateDefinedIPsDefinedIPs = definedIPs
             }
-  (res, _) <- runRequest hostname req session
+  (res, _) <- runApiRequest apiClient req
   return $ fmap response res
 
-createDefinedIPs :: CookieJar
-                 -> S8.ByteString
-                 -> Int
-                 -> S8.ByteString
+createDefinedIPs :: ApiClient
+                 -> T.Text
                  -> [T.Text]
                  -> IO (Maybe GetAssetByIdResponse)
-createDefinedIPs session hostname t assetToUpdate definedIPs = do
+createDefinedIPs apiClient assetName definedIPs = do
   let req = CreateStaticAssetRequest
-            { createStaticAssetRequestToken = (fromString . show) t
-            , createStaticAssetRequestName = fromS8 assetToUpdate
+            { createStaticAssetRequestToken = apiClientToken apiClient
+            , createStaticAssetRequestName = assetName
             , createStaticAssetRequestDefinedIPs = definedIPs
             }
-  (res, _) <- runRequest hostname req session
+  (res, _) <- runApiRequest apiClient req
   return $ fmap response res
 
-endSession :: S8.ByteString
-           -> (CookieJar, Int)
-           -> IO (Maybe (ApiResponse Object), CookieJar)
-endSession hostname (session, t) = do
-  let req = DeleteTokenRequest
-            { deleteTokenRequestToken = (fromString . show) t
-            }
-  runRequest hostname req session
-
-listAssets :: CookieJar
-           -> S8.ByteString
-           -> Int
+listAssets :: ApiClient
+           -> Manager
            -> IO ()
-listAssets session hostname t = do
-   let req = ListAssetsRequest { authenticationToken = (fromString . show) t }
-   (res, _) <- runRequest hostname req session
+listAssets apiClient manager = do
+   let req = ListAssetsRequest
+             { authenticationToken = apiClientToken apiClient
+             }
+   (res, _) <- runApiRequest apiClient req
    let usables = fmap (usableAssets.response) res
    print usables
    let manageables = fmap (manageableAssets.response) res
    print manageables
 
-getAssetById :: CookieJar
-             -> S8.ByteString
-             -> Int
-             -> S8.ByteString
+getAssetById :: ApiClient
+             -> T.Text
              -> IO (Maybe GetAssetByIdResponse)
-getAssetById session hostname t assetToUpdate = do
+getAssetById apiClient assetToUpdate = do
   let req = GetAssetByIdRequest
-             { getAssetByIdToken = (fromString . show) t
+             { getAssetByIdToken = apiClientToken apiClient
              , getAssetByIdId = assetToUpdate
              }
-  (res, _) <- runRequest hostname req session
+  (res, _) <- runApiRequest apiClient req
   return $ fmap response res

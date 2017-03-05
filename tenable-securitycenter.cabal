@@ -23,7 +23,7 @@ library
                      , base >= 4.7 && < 5
                      , bytestring >= 0.10.6.0
                      , connection >= 0.2.5
-                     , http-client
+                     , http-client >= 0.4.28
                      , http-client-tls >= 0.2.4
                      , http-conduit
                      , resourcet
@@ -38,6 +38,8 @@ executable tenable-securitycenter-exe
   build-depends:       aeson >= 0.9.0.1
                      , base
                      , bytestring
+                     , connection >= 0.2.5
+                     , http-client-tls
                      , http-conduit
                      , tenable-securitycenter
                      , text

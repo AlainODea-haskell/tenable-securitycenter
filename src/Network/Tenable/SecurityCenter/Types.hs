@@ -13,10 +13,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.Tenable.SecurityCenter.Types where
 
-import Data.Aeson
-import Data.Aeson.Types
+import           Data.Aeson
+import           Data.Aeson.Types
 import qualified Data.Text as T
-import qualified Data.ByteString.Char8 as S8
 
 data ApiResponse a = ApiResponse
                      { apiType :: T.Text
@@ -38,8 +37,11 @@ instance (FromJSON a) => FromJSON (ApiResponse a) where
   parseJSON invalid = typeMismatch "ApiResponse" invalid
 
 class Endpoint a where
-  endpointRequestMethod :: a -> S8.ByteString
-  endpointRequestPath :: a -> S8.ByteString
-  endpointRequestQueryString :: a -> [(S8.ByteString, Maybe S8.ByteString)]
+  endpointRequestMethod :: a -> T.Text
+  endpointRequestPath :: a -> T.Text
+  endpointRequestQueryString :: a -> [(T.Text, Maybe T.Text)]
   endpointRequestQueryString = const []
-  endpointAuthentication :: a -> Maybe S8.ByteString
+  endpointAuthentication :: a -> Maybe Token
+
+newtype Token = Token { unToken :: Int }
+  deriving (Eq, Show)
