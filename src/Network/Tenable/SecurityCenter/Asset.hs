@@ -18,7 +18,6 @@ import Network.Tenable.SecurityCenter.Types (Endpoint(..))
 
 import Data.Aeson
 import Data.Aeson.Types
-import Data.Bool (bool)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as S8
 
@@ -111,3 +110,21 @@ instance Endpoint UpdateDefinedIPsRequest where
 instance ToJSON UpdateDefinedIPsRequest where
   toJSON x = object ["definedIPs" .= (T.intercalate "," $
                                       updateDefinedIPsDefinedIPs x)]
+
+data CreateStaticAssetRequest = CreateStaticAssetRequest
+                                { createStaticAssetRequestName :: T.Text
+                                , createStaticAssetRequestDefinedIPs :: [T.Text]
+                                , createStaticAssetRequestToken :: S8.ByteString
+                                }
+
+instance Endpoint CreateStaticAssetRequest where
+  endpointRequestMethod _ = "POST"
+  endpointRequestPath _ = "/rest/asset"
+  endpointAuthentication = pure . createStaticAssetRequestToken
+
+instance ToJSON CreateStaticAssetRequest where
+  toJSON x = object
+    [ "name" .= createStaticAssetRequestName x
+    , "type" .= ("static" :: T.Text)
+    , "definedIPs" .= (T.intercalate "," $
+                     createStaticAssetRequestDefinedIPs x)]
