@@ -11,37 +11,46 @@
 -- Types, data types, and typeclasses common to all modules.
 
 {-# LANGUAGE OverloadedStrings #-}
-module Network.Tenable.SecurityCenter.Types where
+module Network.Tenable.SecurityCenter.Types
+       ( ApiResponse(..)
+       , Endpoint(..)
+       , Token(..)
+       )
+where
 
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.Text as T
 
+{-| 'ApiResponse' represents the general top-level response wrapper
+    SecurityCenter produces in all API responses.
+-}
 data ApiResponse a = ApiResponse
-                     { apiType :: T.Text
-                     , response :: a
-                     , errorCode :: Int
-                     , errorMsg :: T.Text
-                     , warnings :: [T.Text]
-                     , timestamp :: Int
+                     { apiResponseResponse :: a
+                     -- ^ Wrapped response
                      } deriving (Eq, Show)
 
 instance (FromJSON a) => FromJSON (ApiResponse a) where
   parseJSON (Object v) = ApiResponse <$>
-                         v .: "type" <*>
-                         v .: "response" <*>
-                         v .: "error_code" <*>
-                         v .: "error_msg" <*>
-                         v .: "warnings" <*>
-                         v .: "timestamp"
+                         v .: "response"
   parseJSON invalid = typeMismatch "ApiResponse" invalid
 
+{-| 'Endpoint' describes the relationship of a request representation to
+    the location and interface of the RESTful resource the SecurityCenter
+    server exposes.
+-}
 class Endpoint a where
+  -- | HTTP request method (GET|POST|PUT|DELETE or offbeat ones like PATCH)
   endpointRequestMethod :: a -> T.Text
+  -- | Request path (example \"/rest/token\")
   endpointRequestPath :: a -> T.Text
+  -- | URL Query parameters (if needed, defaults to [])
   endpointRequestQueryString :: a -> [(T.Text, Maybe T.Text)]
   endpointRequestQueryString = const []
+  -- | Authentication token for the request
   endpointAuthentication :: a -> Maybe Token
 
+{-| 'Token' represents a SecurityCenter authentication token
+-}
 newtype Token = Token { unToken :: Int }
   deriving (Eq, Show)

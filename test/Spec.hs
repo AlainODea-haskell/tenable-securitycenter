@@ -36,13 +36,13 @@ tokenResponseRaw :: L8.ByteString
 tokenResponseRaw = "{\"type\":\"regular\",\"response\":{\"token\":123456789,\"unassociatedCert\":\"false\"},\"error_code\":0,\"error_msg\":\"\",\"warnings\":[],\"timestamp\":1403115433}\n"
 
 tokenResponseParsed :: Maybe (ApiResponse CreateTokenResponse)
-tokenResponseParsed = Just (ApiResponse {apiType = "regular", response = CreateTokenResponse {token = Token 123456789}, errorCode = 0, errorMsg = "", warnings = [], timestamp = 1403115433})
+tokenResponseParsed = Just (ApiResponse {apiResponseResponse = CreateTokenResponse {createTokenResponseToken = Token 123456789}})
 
 staticAssetResponseRaw :: L8.ByteString
 staticAssetResponseRaw  = "{\"type\":\"regular\",\"response\":{\"id\":\"1234\",\"name\":\"Private Networks\",\"type\":\"static\",\"description\":\"\",\"tags\":\"\",\"context\":\"\",\"status\":\"0\",\"createdTime\":\"1464202127\",\"modifiedTime\":\"1464202127\",\"typeFields\":{\"definedIPs\":\"10.0.0.0/8,172.16.0.0/12,192.168.0.0/16\"},\"repositories\":[{\"ipCount\":\"0\",\"repository\":{\"id\":\"1\",\"name\":\"staging-creds\",\"description\":\"\"}},{\"ipCount\":\"0\",\"repository\":{\"id\":\"2\",\"name\":\"development-creds\",\"description\":\"\"}},{\"ipCount\":\"0\",\"repository\":{\"id\":\"3\",\"name\":\"production-creds\",\"description\":\"\"}}],\"ipCount\":\"17891328\",\"groups\":[],\"assetDataFields\":[],\"canUse\":\"true\",\"canManage\":\"true\",\"creator\":{\"id\":\"1\",\"username\":\"alain.odea\",\"firstname\":\"Alain\",\"lastname\":\"O'Dea\"},\"owner\":{\"id\":\"1\",\"username\":\"alain.odea\",\"firstname\":\"Alain\",\"lastname\":\"O'Dea\"},\"ownerGroup\":{\"id\":\"0\",\"name\":\"Full Access\",\"description\":\"Full Access group\"},\"targetGroup\":{\"id\":-1,\"name\":\"\",\"description\":\"\"},\"template\":{\"id\":-1,\"name\":\"\",\"description\":\"\"}},\"error_code\":0,\"error_msg\":\"\",\"warnings\":[],\"timestamp\":1464109434}\n"
 
 staticAssetResponseParsed :: Maybe (ApiResponse GetAssetByIdResponse)
-staticAssetResponseParsed = Just (ApiResponse {apiType = "regular", response = GetAssetByIdResponse {assetByIdId = "1234", assetByIdStaticTypeFields = StaticTypeFields {typeFieldsDefinedIPs = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"}}, errorCode = 0, errorMsg = "", warnings = [], timestamp = 1464109434})
+staticAssetResponseParsed = Just (ApiResponse {apiResponseResponse = GetAssetByIdResponse {assetByIdId = "1234", assetByIdStaticTypeFields = StaticTypeFields {typeFieldsDefinedIPs = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"}}})
 
 updateDefinedIPsRequestData :: UpdateDefinedIPsRequest
 updateDefinedIPsRequestData = UpdateDefinedIPsRequest

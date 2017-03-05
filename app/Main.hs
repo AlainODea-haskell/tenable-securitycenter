@@ -48,7 +48,7 @@ main = do
 runApiRequest :: (Endpoint a, ToJSON a, FromJSON b)
               => ApiClient
               -> a
-              -> IO ((Maybe (ApiResponse b)), CookieJar)
+              -> IO (Maybe b, CookieJar)
 runApiRequest apiClient req = do
   let manager = apiClientManager apiClient
   let hostname = apiClientHostname apiClient
@@ -103,9 +103,9 @@ getToken :: Manager
          -> IO (Token, CookieJar)
 getToken manager hostname u p = do
   let unauthSession = createCookieJar []
-  let req = CreateTokenRequest { username = u, password = p }
+  let req = CreateTokenRequest u p
   (res, authSession) <- runRequest manager hostname unauthSession req
-  let Just t = fmap (token.response) res
+  let Just t = fmap createTokenResponseToken res
   return (t, authSession)
 
 endSession :: ApiClient
@@ -127,7 +127,7 @@ updateDefinedIPs apiClient assetToUpdate definedIPs = do
             , updateDefinedIPsDefinedIPs = definedIPs
             }
   (res, _) <- runApiRequest apiClient req
-  return $ fmap response res
+  return res
 
 createDefinedIPs :: ApiClient
                  -> T.Text
@@ -140,7 +140,7 @@ createDefinedIPs apiClient assetName definedIPs = do
             , createStaticAssetRequestDefinedIPs = definedIPs
             }
   (res, _) <- runApiRequest apiClient req
-  return $ fmap response res
+  return res
 
 listAssets :: ApiClient
            -> Manager
@@ -150,9 +150,9 @@ listAssets apiClient manager = do
              { authenticationToken = apiClientToken apiClient
              }
    (res, _) <- runApiRequest apiClient req
-   let usables = fmap (usableAssets.response) res
+   let usables = fmap usableAssets res
    print usables
-   let manageables = fmap (manageableAssets.response) res
+   let manageables = fmap manageableAssets res
    print manageables
 
 getAssetById :: ApiClient
@@ -164,4 +164,4 @@ getAssetById apiClient assetToUpdate = do
              , getAssetByIdId = assetToUpdate
              }
   (res, _) <- runApiRequest apiClient req
-  return $ fmap response res
+  return res

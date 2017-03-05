@@ -11,7 +11,9 @@
 -- Handles request execution, sessions, and authentication
 
 {-# LANGUAGE OverloadedStrings #-}
-module Network.Tenable.SecurityCenter.Client where
+module Network.Tenable.SecurityCenter.Client
+       (runRequest)
+where
 
 import Network.Tenable.SecurityCenter.Types
 
@@ -28,19 +30,22 @@ import           Network.HTTP.Client
                  )
 import           Network.HTTP.Simple
 
+-- | Run an API request and get a response
 runRequest :: (Endpoint a, ToJSON a, FromJSON b)
            => Manager
            -> T.Text
            -> CookieJar
            -> a
-           -> IO ((Maybe (ApiResponse b)), CookieJar)
+           -> IO (Maybe b, CookieJar)
 runRequest manager hostname session apiRequest = do
   let request
         = setApiRequestBody apiRequest
         $ defaultApiRequest hostname apiRequest manager session
   apiResponse <- httpLBS request
   let apiResponseBody = getResponseBody apiResponse
-  return $ (decode apiResponseBody, responseCookieJar apiResponse)
+  return $ ( fmap apiResponseResponse $ decode apiResponseBody
+           , responseCookieJar apiResponse
+           )
 
 setApiRequestBody :: (Endpoint a, ToJSON a)
                   => a

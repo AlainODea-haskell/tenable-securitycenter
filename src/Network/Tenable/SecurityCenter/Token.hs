@@ -12,7 +12,12 @@
 -- and get a session token to be used with other requests.
 
 {-# LANGUAGE OverloadedStrings #-}
-module Network.Tenable.SecurityCenter.Token where
+module Network.Tenable.SecurityCenter.Token
+       ( CreateTokenRequest(..)
+       , CreateTokenResponse(..)
+       , DeleteTokenRequest(..)
+       )
+where
 
 import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token(..))
 
@@ -22,9 +27,13 @@ import Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.Text as T
 
+{-| 'CreateTokenRequest' represents a request to log in.
+-}
 data CreateTokenRequest = CreateTokenRequest
-                          { username :: T.Text
-                          , password :: T.Text
+                          { createTokenRequestUsername :: T.Text
+                          -- ^ API user's username
+                          , createTokenRequestPassword :: T.Text
+                          -- ^ API user's password
                           } deriving Show
 
 instance Endpoint CreateTokenRequest where
@@ -34,11 +43,15 @@ instance Endpoint CreateTokenRequest where
 
 instance ToJSON CreateTokenRequest where
   toJSON tokenRequest =
-    object [ "username" .= username tokenRequest
-           , "password" .= password tokenRequest]
+    object [ "username" .= createTokenRequestUsername tokenRequest
+           , "password" .= createTokenRequestPassword tokenRequest]
 
+{-| 'CreateTokenResponse' represents a successful login and includes the
+    authentication token needed for subsequent requests.
+-}
 data CreateTokenResponse = CreateTokenResponse
-                           { token :: Token
+                           { createTokenResponseToken :: Token
+                           -- ^ Authentication token to be used in subsequent requests.
                            } deriving (Eq, Show)
 
 instance FromJSON CreateTokenResponse where
@@ -46,8 +59,11 @@ instance FromJSON CreateTokenResponse where
                          (Token <$> (v .: "token"))
   parseJSON invalid = typeMismatch "CreateTokenResponse" invalid
 
+{-| 'DeleteTokenRequest' represents a request to log out.
+-}
 data DeleteTokenRequest = DeleteTokenRequest
                           { deleteTokenRequestToken :: Token
+                          -- ^ Authentication token to destroy
                           } deriving Show
 
 instance Endpoint DeleteTokenRequest where

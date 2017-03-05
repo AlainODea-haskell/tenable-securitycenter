@@ -12,18 +12,28 @@
 -- in SecurityCenter.
 
 {-# LANGUAGE OverloadedStrings #-}
-module Network.Tenable.SecurityCenter.Asset where
+module Network.Tenable.SecurityCenter.Asset
+       ( ListAssetsRequest(..)
+       , ListAssetsResponse(..)
+       , GetAssetByIdRequest(..)
+       , GetAssetByIdResponse(..)
+       , StaticTypeFields(..)
+       , UpdateDefinedIPsRequest(..)
+       , CreateStaticAssetRequest(..)
+       )
+where
 
 import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token)
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import qualified Data.ByteString.Char8 as S8
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 
+{-| 'ListAssetsRequest' represents a request for a list of assets.
+-}
 data ListAssetsRequest = ListAssetsRequest
                          { authenticationToken :: Token
+                         -- ^ Request authentication token
                          } deriving Show
 
 instance Endpoint ListAssetsRequest where
@@ -34,6 +44,8 @@ instance Endpoint ListAssetsRequest where
 instance ToJSON ListAssetsRequest where
   toJSON _ = Null
 
+{-| 'ListAssetsResponse' represents a list of assets.
+-}
 data ListAssetsResponse = ListAssetsResponse
                           { usableAssets :: [ListAssetResponse]
                           , manageableAssets :: [ListAssetResponse]
@@ -45,11 +57,17 @@ instance FromJSON ListAssetsResponse where
                          v .: "manageable"
   parseJSON invalid = typeMismatch "ListAssetsResponse" invalid
 
+{-| 'ListAssetResponse' represents an individual asset.
+-}
 data ListAssetResponse = ListAssetResponse
                          { assetId :: T.Text
+                         -- ^ Unique ID of asset in SecurityCenter
                          , assetName :: T.Text
+                         -- ^ Display name of asset
                          , assetDescription :: T.Text
+                         -- ^ Description of asset
                          , assetStatus :: T.Text
+                         -- ^ Status of asset
                          } deriving Show
 
 instance FromJSON ListAssetResponse where
@@ -60,6 +78,9 @@ instance FromJSON ListAssetResponse where
                          v .: "status"
   parseJSON invalid = typeMismatch "ListAssetResponse" invalid
 
+{-| 'GetAssetByIdRequest' represents a request to get details of an
+    asset.
+-}
 data GetAssetByIdRequest = GetAssetByIdRequest
                            { getAssetByIdToken :: Token
                            , getAssetByIdId :: T.Text
@@ -76,9 +97,14 @@ instance Endpoint GetAssetByIdRequest where
 instance ToJSON GetAssetByIdRequest where
   toJSON _ = Null
 
+{-| 'GetAssetByIdResponse' represents the details of an individual
+    asset.
+-}
 data GetAssetByIdResponse = GetAssetByIdResponse
                             { assetByIdId :: T.Text
+                            -- ^ Unique ID of asset retrieved
                             , assetByIdStaticTypeFields :: StaticTypeFields
+                            -- ^ Type fields (really just a wrapped for definedIPs)
                             } deriving (Eq, Show)
 
 instance FromJSON GetAssetByIdResponse where
@@ -88,8 +114,12 @@ instance FromJSON GetAssetByIdResponse where
                           v .: "typeFields"
   parseJSON invalid = typeMismatch "GetAssetByIdResponse" invalid
 
+{-| 'StaticTypeFields' represents a request the typeFields of a static
+    type asset.
+-}
 data StaticTypeFields = StaticTypeFields
                         { typeFieldsDefinedIPs :: T.Text
+                        -- ^ IPs/IP ranges on the asset separated by commas or spaces (TODO: should really be parsed into a list)
                         } deriving (Eq, Show)
 
 instance FromJSON StaticTypeFields where
@@ -97,10 +127,16 @@ instance FromJSON StaticTypeFields where
                          v .: "definedIPs"
   parseJSON invalid = typeMismatch "StaticTypeFields" invalid
 
+{-| 'UpdateDefinedIPsRequest' represents a request to update the IPs
+    listed on a static asset.
+-}
 data UpdateDefinedIPsRequest = UpdateDefinedIPsRequest
                               { updateDefinedIPsAssetId :: T.Text
+                              -- ^ Unique ID of an existing static asset to update
                               , updateDefinedIPsDefinedIPs :: [T.Text]
+                              -- ^ New list of IPs/CIDRs for the asset (SecurityCenter will convert into ranges)
                               , updateDefinedIPsToken :: Token
+                              -- ^ Authentication token
                               } deriving Show
 
 instance Endpoint UpdateDefinedIPsRequest where
@@ -113,10 +149,15 @@ instance ToJSON UpdateDefinedIPsRequest where
   toJSON x = object ["definedIPs" .= (T.intercalate "," $
                                       updateDefinedIPsDefinedIPs x)]
 
+{-| 'CreateStaticAssetRequest' represents a request to create an asset.
+-}
 data CreateStaticAssetRequest = CreateStaticAssetRequest
                                 { createStaticAssetRequestName :: T.Text
+                                -- ^ Display name for the asset
                                 , createStaticAssetRequestDefinedIPs :: [T.Text]
+                                -- ^ Initial set of IPs/CIDRs for the asset (SecurityCenter will convert into ranges)
                                 , createStaticAssetRequestToken :: Token
+                                -- ^ Authentication token
                                 }
 
 instance Endpoint CreateStaticAssetRequest where
