@@ -44,7 +44,7 @@ main = do
   (t, session) <- getToken hostname u p
   _ <- updateDefinedIPs session hostname t assetToUpdate definedIPs
   _ <- endSession hostname (session, t)
-  T.putStrLn "All done!"
+  return ()
 
 data Config = Config
               { securityCenterHost :: T.Text
