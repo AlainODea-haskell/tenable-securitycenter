@@ -34,6 +34,8 @@ library
 
 executable tenable-securitycenter-exe
   hs-source-dirs:      app
+  other-modules:       ApiClient
+                     , Examples
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       aeson
