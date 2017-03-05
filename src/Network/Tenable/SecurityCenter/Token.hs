@@ -19,7 +19,11 @@ module Network.Tenable.SecurityCenter.Token
        )
 where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..), Token(..))
+import Network.Tenable.SecurityCenter.Types
+  ( Endpoint(..)
+  , HttpMethod(HttpPost, HttpDelete)
+  , Token(..)
+  )
 
 import Control.Applicative (liftA)
 import Data.Aeson
@@ -37,7 +41,7 @@ data CreateTokenRequest = CreateTokenRequest
                           } deriving Show
 
 instance Endpoint CreateTokenRequest where
-  endpointRequestMethod _ = "POST"
+  endpointRequestMethod _ = HttpPost
   endpointRequestPath _ = "/rest/token"
 
 instance ToJSON CreateTokenRequest where
@@ -64,7 +68,7 @@ data DeleteTokenRequest = DeleteTokenRequest
                           deriving Show
 
 instance Endpoint DeleteTokenRequest where
-  endpointRequestMethod _ = "DELETE"
+  endpointRequestMethod _ = HttpDelete
   endpointRequestPath _ = "/rest/token"
 
 instance ToJSON DeleteTokenRequest where

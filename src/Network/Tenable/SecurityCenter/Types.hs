@@ -14,6 +14,8 @@
 module Network.Tenable.SecurityCenter.Types
        ( ApiResponse(..)
        , Endpoint(..)
+       , HttpMethod(..)
+       , httpMethod
        , Token(..)
        )
 where
@@ -41,12 +43,22 @@ instance (FromJSON a) => FromJSON (ApiResponse a) where
 -}
 class Endpoint a where
   -- | HTTP request method (GET|POST|PUT|DELETE or offbeat ones like PATCH)
-  endpointRequestMethod :: a -> T.Text
+  endpointRequestMethod :: a -> HttpMethod
   -- | Request path (example \"/rest/token\")
   endpointRequestPath :: a -> T.Text
   -- | URL Query parameters (if needed, defaults to [])
   endpointRequestQueryString :: a -> [(T.Text, Maybe T.Text)]
   endpointRequestQueryString = const []
+
+data HttpMethod = HttpGet | HttpPost | HttpPut | HttpDelete | HttpPatch
+  deriving Eq
+
+httpMethod :: HttpMethod -> T.Text
+httpMethod HttpGet = "GET"
+httpMethod HttpPost = "POST"
+httpMethod HttpPut = "PUT"
+httpMethod HttpDelete = "DELETE"
+httpMethod HttpPatch = "PATCH"
 
 {-| 'Token' represents a SecurityCenter authentication token
 -}

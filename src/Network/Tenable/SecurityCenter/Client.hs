@@ -54,7 +54,7 @@ setApiRequestBody :: (Endpoint a, ToJSON a)
                   -> Request
 setApiRequestBody apiRequest req =
   bool req (setRequestBodyJSON apiRequest req)
-  $ endpointRequestMethod apiRequest `elem` ["POST","PATCH"]
+  $ endpointRequestMethod apiRequest `elem` [HttpPost, HttpPatch]
 
 defaultApiRequest :: (Endpoint a, ToJSON a)
                => T.Text
@@ -64,7 +64,7 @@ defaultApiRequest :: (Endpoint a, ToJSON a)
                -> CookieJar
                -> Request
 defaultApiRequest hostname apiRequest token manager session =
-  setRequestMethod (TE.encodeUtf8 $ endpointRequestMethod apiRequest)
+  setRequestMethod (TE.encodeUtf8 $ httpMethod $ endpointRequestMethod apiRequest)
   $ setRequestPath (TE.encodeUtf8 $ endpointRequestPath apiRequest)
   $ setRequestQueryString (fmap encodeQuery $ endpointRequestQueryString apiRequest)
   $ setRequestAuthentication token

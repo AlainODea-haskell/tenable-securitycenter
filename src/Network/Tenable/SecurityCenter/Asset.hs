@@ -23,7 +23,10 @@ module Network.Tenable.SecurityCenter.Asset
        )
 where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..))
+import Network.Tenable.SecurityCenter.Types
+  ( Endpoint(..)
+  , HttpMethod(HttpGet, HttpPost, HttpPatch)
+  )
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -35,7 +38,7 @@ data ListAssetsRequest = ListAssetsRequest
                          deriving Show
 
 instance Endpoint ListAssetsRequest where
-  endpointRequestMethod _ = "GET"
+  endpointRequestMethod _ = HttpGet
   endpointRequestPath _ = "/rest/asset"
 
 instance ToJSON ListAssetsRequest where
@@ -86,7 +89,7 @@ data GetAssetByIdRequest = GetAssetByIdRequest
                            } deriving Show
 
 instance Endpoint GetAssetByIdRequest where
-  endpointRequestMethod _ = "GET"
+  endpointRequestMethod _ = HttpGet
   endpointRequestPath x = T.concat ["/rest/asset/", getAssetByIdId x]
   endpointRequestQueryString _ =
     [ ("fields", pure "id,typeFields")
@@ -136,7 +139,7 @@ data UpdateDefinedIPsRequest = UpdateDefinedIPsRequest
                               } deriving Show
 
 instance Endpoint UpdateDefinedIPsRequest where
-  endpointRequestMethod _ = "PATCH"
+  endpointRequestMethod _ = HttpPatch
   endpointRequestPath x = T.concat
     [ "/rest/asset/" , updateDefinedIPsAssetId x]
 
@@ -154,7 +157,7 @@ data CreateStaticAssetRequest = CreateStaticAssetRequest
                                 }
 
 instance Endpoint CreateStaticAssetRequest where
-  endpointRequestMethod _ = "POST"
+  endpointRequestMethod _ = HttpPost
   endpointRequestPath _ = "/rest/asset"
 
 instance ToJSON CreateStaticAssetRequest where

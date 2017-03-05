@@ -18,7 +18,10 @@ module Network.Tenable.SecurityCenter.Scan
        )
 where
 
-import Network.Tenable.SecurityCenter.Types (Endpoint(..))
+import Network.Tenable.SecurityCenter.Types
+  ( Endpoint(..)
+  , HttpMethod(HttpGet)
+  )
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -30,7 +33,7 @@ data ListScansRequest = ListScansRequest
                         deriving Show
 
 instance Endpoint ListScansRequest where
-  endpointRequestMethod _ = "GET"
+  endpointRequestMethod _ = HttpGet
   endpointRequestPath _ = "/rest/scan"
 
 instance ToJSON ListScansRequest where

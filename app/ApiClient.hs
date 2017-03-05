@@ -23,6 +23,7 @@ import Network.Tenable.SecurityCenter.Types
   ( Token
   , ApiResponse
   , Endpoint(..)
+  , httpMethod
   )
 
 import           Data.Aeson (eitherDecode)
@@ -133,7 +134,7 @@ logApi msg reqId req = do
     , ":"
     , msg
     , ":"
-    , endpointRequestMethod req
+    , httpMethod $ endpointRequestMethod req
     , ":"
     , endpointRequestPath req
     ]
