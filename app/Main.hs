@@ -38,12 +38,20 @@ main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   (configFilename, assetIdArg) <- parseArgs
-  (hostname, u, p) <- readConfig configFilename
-  run_example example_updateAsset hostname u p assetIdArg
+  apiClient <- createApiClient configFilename
+  run_example (example_updateAsset assetIdArg) apiClient
 
 type TSCHost = T.Text
 type TSCUser = T.Text
 type TSCPass = T.Text
+
+createApiClient :: FilePath
+                -> IO ApiClient
+createApiClient configFilename = do
+  (hostname, u, p) <- readConfig configFilename
+  manager <- newManager tlsManagerSettings
+  (t, session) <- getToken manager hostname u p
+  return $ ApiClient manager hostname session t
 
 readConfig :: FilePath
            -> IO (TSCHost, TSCUser, TSCPass)
@@ -55,17 +63,11 @@ readConfig configFilename = do
   let p = securityCenterPassword config
   return (hostname, u, p)
 
-run_example :: (ApiClient -> T.Text -> IO ())
-            -> T.Text
-            -> T.Text
-            -> T.Text
-            -> T.Text
+run_example :: (ApiClient -> IO ())
+            -> ApiClient
             -> IO ()
-run_example example hostname u p assetIdArg = do
-  manager <- newManager tlsManagerSettings
-  (t, session) <- getToken manager hostname u p
-  let apiClient = ApiClient manager hostname session t
-  example apiClient assetIdArg
+run_example example apiClient = do
+  example apiClient
   _ <- endSession apiClient
   return ()
 
@@ -127,19 +129,19 @@ data ApiClient = ApiClient
                  , apiClientToken :: Token
                  }
 
-example_updateAsset :: ApiClient
-                    -> T.Text
+example_updateAsset :: T.Text
+                    -> ApiClient
                     -> IO ()
-example_updateAsset apiClient assetToUpdate = do
+example_updateAsset assetToUpdate apiClient = do
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
   _ <- updateDefinedIPs apiClient assetToUpdate definedIPs
   return ()
 
-example_createAsset :: ApiClient
-                    -> T.Text
+example_createAsset :: T.Text
+                    -> ApiClient
                     -> IO ()
-example_createAsset apiClient desiredAssetName = do
+example_createAsset desiredAssetName apiClient = do
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
   res <- createDefinedIPs apiClient desiredAssetName definedIPs
@@ -223,9 +225,8 @@ getAssetById apiClient assetToUpdate = do
   return res
 
 example_listScans :: ApiClient
-          -> T.Text
           -> IO ()
-example_listScans apiClient _ = do
+example_listScans apiClient = do
    let req = ListScansRequest
    (res, _) <- runApiRequest apiClient req
    let usables = fmap scanUsable res
