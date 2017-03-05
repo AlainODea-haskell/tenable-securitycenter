@@ -13,6 +13,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import ApiClient
+  ( createApiClient
+  , ApiClient(..)
+  , runApiRequest
+  , endSession
+  )
+
 import Network.Tenable.SecurityCenter.Client
 import Network.Tenable.SecurityCenter.Token
 import Network.Tenable.SecurityCenter.Types
@@ -41,18 +48,6 @@ main = do
   apiClient <- createApiClient configFilename
   run_example (example_updateAsset assetIdArg) apiClient
 
-createApiClient :: FilePath
-                -> IO ApiClient
-createApiClient configFilename = do
-  configFile <- L8.readFile configFilename
-  let config = either error id $ eitherDecode configFile
-  let hostname = securityCenterHost $ config
-  let u = securityCenterUsername config
-  let p = securityCenterPassword config
-  manager <- newManager tlsManagerSettings
-  (t, session) <- getToken manager hostname u p
-  return $ ApiClient manager hostname session t
-
 run_example :: (ApiClient -> IO ())
             -> ApiClient
             -> IO ()
@@ -65,59 +60,6 @@ parseArgs :: IO (FilePath, T.Text)
 parseArgs = do
   [configFilename, assetIdArg] <- getArgs
   return (configFilename, T.pack assetIdArg)
-
-runApiRequest :: (Endpoint a, ToJSON a, FromJSON b)
-              => ApiClient
-              -> a
-              -> IO (Maybe b, CookieJar)
-runApiRequest apiClient req = do
-  reqId <- U.nextRandom
-  logSendApi reqId req
-  let manager = apiClientManager apiClient
-  let hostname = apiClientHostname apiClient
-  let session = apiClientSession apiClient
-  res <- runRequest manager hostname session req $
-    Just $ apiClientToken apiClient
-  logSuccessApi reqId req
-  return res
-
-logSendApi :: Endpoint a
-           => U.UUID
-           -> a
-           -> IO ()
-logSendApi = logApi "Sending..."
-
-logSuccessApi :: Endpoint a
-              => U.UUID
-              -> a
-              -> IO ()
-logSuccessApi = logApi "Success"
-
-logApi :: Endpoint a
-           => T.Text
-           -> U.UUID
-           -> a
-           -> IO ()
-logApi msg reqId req = do
-  currentTime <- Clock.getCurrentTime
-  T.putStrLn $ T.concat
-    [ T.pack $ formatISO8601Millis currentTime
-    , ":"
-    , U.toText reqId
-    , ":"
-    , msg
-    , ":"
-    , endpointRequestMethod req
-    , ":"
-    , endpointRequestPath req
-    ]
-
-data ApiClient = ApiClient
-                 { apiClientManager :: Manager
-                 , apiClientHostname :: T.Text
-                 , apiClientSession :: CookieJar
-                 , apiClientToken :: Token
-                 }
 
 example_updateAsset :: T.Text
                     -> ApiClient
@@ -137,37 +79,6 @@ example_createAsset desiredAssetName apiClient = do
   res <- createDefinedIPs apiClient desiredAssetName definedIPs
   let Just createdAssetId = fmap assetByIdId res
   T.putStrLn createdAssetId
-
-data Config = Config
-              { securityCenterHost :: T.Text
-              , securityCenterUsername :: T.Text
-              , securityCenterPassword :: T.Text
-              }
-
-instance FromJSON Config where
-  parseJSON (Object v) = Config <$>
-                         v .: "host" <*>
-                         v .: "username" <*>
-                         v .: "password"
-  parseJSON invalid = typeMismatch "Config" invalid
-
-getToken :: Manager
-         -> T.Text
-         -> T.Text
-         -> T.Text
-         -> IO (Token, CookieJar)
-getToken manager hostname u p = do
-  let unauthSession = createCookieJar []
-  let req = CreateTokenRequest u p
-  (res, authSession) <- runRequest manager hostname unauthSession req Nothing
-  let Just t = fmap createTokenResponseToken res
-  return (t, authSession)
-
-endSession :: ApiClient
-           -> IO (Maybe (ApiResponse Object), CookieJar)
-endSession apiClient = do
-  let req = DeleteTokenRequest
-  runApiRequest apiClient req
 
 updateDefinedIPs :: ApiClient
                  -> T.Text
