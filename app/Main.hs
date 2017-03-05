@@ -33,7 +33,7 @@ main :: IO ()
 main = do
   manager <- newManager tlsManagerSettings
   hSetBuffering stdout NoBuffering
-  [configFilename, assetIdArg] <- parseArgs
+  (configFilename, assetIdArg) <- parseArgs
   configFile <- L8.readFile configFilename
   let config = either error id $ eitherDecode configFile
   let hostname = securityCenterHost $ config
