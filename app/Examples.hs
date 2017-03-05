@@ -80,8 +80,8 @@ updateDefinedIPs apiClient assetToUpdate definedIPs = do
   return res
 
 createAsset :: T.Text
-                    -> ApiClient
-                    -> IO ()
+            -> ApiClient
+            -> IO ()
 createAsset desiredAssetName apiClient = do
   rawUpdate <- T.getContents
   let definedIPs = T.lines rawUpdate
